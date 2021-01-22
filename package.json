@@ -1,0 +1,32 @@
+{
+  "name": "leetrepeat-bot",
+  "version": "1.0.0",
+  "description": "A Telegram bot that intelligently schedules your next LeetCode problems to practice again based on the forgetting curve.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SiyanH/leetrepeat-bot.git"
+  },
+  "keywords": [
+    "bot",
+    "telegram",
+    "telegram-bot",
+    "leetcode",
+    "spaced-repetition",
+    "forgetting-curve"
+  ],
+  "author": "SiyanH",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/SiyanH/LeetRepeatBot/issues"
+  },
+  "homepage": "https://github.com/SiyanH/LeetRepeatBot#readme",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "telegraf": "^4.0.1"
+  }
+}
