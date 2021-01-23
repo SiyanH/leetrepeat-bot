@@ -1,8 +1,9 @@
-require('dotenv').config()
+require('dotenv').config({ path: '../../.env' })
 const { MongoClient } = require('mongodb')
 
 class Database {
   static _client = null
+  static _db = null
 
   static get client () {
     if (this._client === null) {
@@ -11,13 +12,11 @@ class Database {
     return this._client
   }
 
-  static async connect () {
-    await this.client.connect()
-    return this.client.db()
-  }
-
-  static async close () {
-    await this.client.close()
+  static get db () {
+    if (this._db === null) {
+      this._db = this.client.db()
+    }
+    return this._db
   }
 }
 
