@@ -26,7 +26,7 @@ async function addUserQuestion (questionId, userId) {
       questionId: questionId,
       a: 3,
       b: 3,
-      t: 3,
+      t: 24,
       recallProbabilities: 1,
       updatedAt: new Date()
     })
