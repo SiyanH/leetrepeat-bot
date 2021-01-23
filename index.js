@@ -2,13 +2,17 @@ require('dotenv').config()
 const { Telegraf } = require('telegraf')
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
-const welcome =
-  `Hi there 👋 
 
-I'm a bot helping you practice LeetCode problems. Just tell me what coding problems you'd like to practice again \
+const welcome = (name) =>
+  `Hi ${name} 👋 
+
+I'm a bot helping you practice LeetCode. Just tell me what LeetCode problems you'd like to practice again \
 and I'll help you schedule the next rounds based on the forgetting curve.
 
 Check all available actions with /help.`
+
+const add = 'Start adding your LeetCode problem by sending me its question id (one per message, please 😊).'
+
 const help = `<b>What can this bot do?</b>
 
 This is a bot that can intelligently schedule your next LeetCode problems to practice again based on \
@@ -22,13 +26,24 @@ problems with least recall probabilities.
 /start shows welcome message`
 
 bot.start(ctx =>
-  ctx.reply(welcome)
+  ctx.reply(welcome(ctx.from.first_name))
     .then(() =>
-      ctx.reply('Start adding your LeetCode problems by giving me their question ids (one id per message, please 😊).')
+      ctx.reply(add)
     )
 )
+
 bot.help(ctx => ctx.replyWithHTML(help))
-bot.on('message', ctx => console.log(ctx.message.text))
+
+bot.on('message', ctx => {
+  const userId = ctx.from.id
+  const questionId = Number(ctx.message.text)
+  if (isNaN(questionId) || !Number.isInteger(questionId)) {
+    ctx.reply('Well, this is not a valid question id...Try again?')
+  } else {
+    ctx.reply(questionId)
+  }
+})
+
 bot.launch()
 
 // Enable graceful stop
