@@ -2,7 +2,7 @@ const { Database } = require('../db/Database')
 
 /**
  * Get a question.
- * @return {Promise<object>}
+ * @return {Promise<object>} a question
  */
 async function getQuestion (id) {
   try {

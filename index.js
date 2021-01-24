@@ -1,7 +1,7 @@
 require('dotenv').config()
 const { Telegraf } = require('telegraf')
 const { Database } = require('./src/db/Database')
-const { getUserQuestion, addUserQuestion } = require('./src/services/userQuestionsService')
+const { getUserQuestion, addUserQuestion, getNextQuestion } = require('./src/services/userQuestionsService')
 const { getQuestion } = require('./src/services/questionsService')
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
@@ -39,6 +39,14 @@ bot.start(ctx =>
 )
 
 bot.help(ctx => ctx.replyWithHTML(help))
+
+bot.command('next', async ctx => {
+  const userId = ctx.from.id
+  ctx.reply(`Sit tight...I'm fetching your next LeetCode problem to practice 😎`)
+  const question = await getNextQuestion(userId)
+  await ctx.reply('Here is you next question. Practice makes perfect 💪')
+  ctx.reply(questionURL(question.titleSlug))
+})
 
 bot.on('message', async ctx => {
   const userId = ctx.from.id

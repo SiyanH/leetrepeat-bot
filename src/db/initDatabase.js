@@ -16,7 +16,7 @@ async function createQuestions (db) {
           required: ['id', 'titleSlug'],
           properties: {
             id: {
-              bsonType: 'int',
+              bsonType: 'number',
               description: 'question id on LeetCode (same as frontend_question_id from LeetCode API)'
             },
             titleSlug: {
@@ -44,7 +44,7 @@ async function createUserQuestions (db) {
       validator: {
         $jsonSchema: {
           bsonType: 'object',
-          required: ['userId', 'questionId', 'a', 'b', 't', 'recallProbabilities', 'updatedAt'],
+          required: ['userId', 'questionId', 'a', 'b', 't', 'recall', 'updatedAt'],
           properties: {
             userId: {
               bsonType: 'number',
@@ -66,9 +66,9 @@ async function createUserQuestions (db) {
               bsonType: 'number',
               description: 'parameter for the ebisu model'
             },
-            recallProbabilities: {
+            recall: {
               bsonType: 'number',
-              description: 'recall probabilities of this question'
+              description: 'expected recall of this question – a value for comparison between recall probabilities'
             },
             updatedAt: {
               bsonType: 'date'
@@ -78,6 +78,7 @@ async function createUserQuestions (db) {
       }
     })
     await db.collection('userQuestions').createIndex({ questionId: 1 })
+    await db.collection('userQuestions').createIndex({ recall: 1 })
     console.log('Created a collection of user questions')
   } catch (e) {
     console.error('Failed to create a collection of user questions\n' + e)
@@ -87,7 +88,7 @@ async function createUserQuestions (db) {
 (async function () {
   try {
     await Database.client.connect()
-    await createQuestions(Database.db)
+    // await createQuestions(Database.db)
     await createUserQuestions(Database.db)
   } catch (e) {
     console.error('initDatabase: script failed\n' + e)
