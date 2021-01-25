@@ -248,7 +248,15 @@ bot.action('rejected', async ctx => {
   }
 })
 
-bot.launch().catch(r => 'Bot failed to lunch\n' + r)
+// Run with webhook
+// When running locally, get domain from command 'npx lt --port xxxx'
+bot.launch({
+  webhook: {
+    domain: process.env.DOMAIN,
+    hookPath: `/${process.env.WEBHOOK_PATH}`,
+    port: process.env.PORT
+  }
+}).catch(r => 'Bot failed to lunch\n' + r)
 
 // Enable graceful stop
 process.once('SIGINT', () => {
