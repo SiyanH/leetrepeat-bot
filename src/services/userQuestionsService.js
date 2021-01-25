@@ -41,6 +41,21 @@ async function addUserQuestion (questionId, userId) {
 }
 
 /**
+ * Delete a user question.
+ * @param _id: user question id in database
+ * @return {Promise<boolean>} true if successful, false otherwise
+ */
+async function deleteUserQuestion (_id) {
+  try {
+    const res = await Database.db.collection('userQuestions').deleteOne({ _id })
+    return !!res
+  } catch (e) {
+    console.error('userQuestionsService: deleteUserQuestion failed\n' + e)
+    return false
+  }
+}
+
+/**
  * Get the next user question with the least value of recall.
  * @return {Promise<object>} a user question with title slug
  */
@@ -100,22 +115,62 @@ async function getAllUserQuestions (userId) {
 /**
  * Predict current recall values for user questions.
  * @param userId
- * @return {void}
+ * @return {Promise<boolean>} true if successful, false otherwise
  */
 async function predictRecalls (userId) {
-  const collection = Database.db.collection('userQuestions')
-  const userQuestions = await collection.find({ userId: userId }).toArray()
-  for (const q of userQuestions) {
-    const model = ebisu.defaultModel(q.t, q.a, q.b)
-    const recall = ebisu.predictRecall(model, diffHours(q.updatedAt, new Date()))
-    await collection.updateOne({ _id: q._id }, { $set: { recall } })
+  try {
+    const collection = Database.db.collection('userQuestions')
+    const userQuestions = await collection.find({ userId: userId }).toArray()
+    let updatedCount = 0
+
+    for (const q of userQuestions) {
+      const model = ebisu.defaultModel(q.t, q.a, q.b)
+      const recall = ebisu.predictRecall(model, diffHours(q.updatedAt, new Date()))
+      const res = await collection.updateOne({ _id: q._id }, { $set: { recall } })
+      if (res) {
+        updatedCount++
+      }
+    }
+
+    return updatedCount === userQuestions.length
+  } catch (e) {
+    console.error('userQuestionsService: predictRecalls failed\n' + e)
+    return false
+  }
+}
+
+/**
+ * Update recall values for a user question.
+ * @param question: a user question object
+ * @param success: 1 for accepted solution of the question, 0 otherwise
+ * @return {Promise<boolean>} true if successful, false otherwise
+ */
+async function updateRecall (question, success) {
+  try {
+    const now = new Date()
+    const model = ebisu.defaultModel(question.t, question.a, question.b)
+    const newModel = ebisu.updateRecall(model, success, 1, diffHours(question.updatedAt, now))
+    const res = await Database.db.collection('userQuestions')
+      .updateOne({ _id: question._id }, {
+        $set: {
+          a: newModel[0],
+          b: newModel[1],
+          t: newModel[2],
+          updatedAt: now
+        }
+      })
+    return !!res
+  } catch (e) {
+    console.error('userQuestionsService: updateRecall failed\n' + e)
+    return false
   }
 }
 
 module.exports = {
   getUserQuestion,
   addUserQuestion,
+  deleteUserQuestion,
   getNextQuestion,
   getAllUserQuestions,
-  predictRecalls
+  updateRecall
 }

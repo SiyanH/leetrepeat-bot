@@ -1,7 +1,13 @@
 require('dotenv').config()
-const { Telegraf } = require('telegraf')
+const { Telegraf, Markup, session } = require('telegraf')
 const { Database } = require('./src/db/Database')
-const { getUserQuestion, addUserQuestion, getNextQuestion } = require('./src/services/userQuestionsService')
+const {
+  getUserQuestion,
+  addUserQuestion,
+  deleteUserQuestion,
+  getNextQuestion,
+  updateRecall
+} = require('./src/services/userQuestionsService')
 const { getQuestion } = require('./src/services/questionsService')
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
@@ -31,6 +37,14 @@ problems with least recall probabilities.
 
 const questionURL = (titleSlug) => `https://leetcode.com/problems/${titleSlug}`
 
+bot.use(session())
+bot.use((ctx, next) => {
+  if (!ctx.session) {
+    ctx.session = {}
+  }
+  return next()
+})
+
 bot.start(ctx =>
   ctx.reply(welcome(ctx.from.first_name))
     .then(() =>
@@ -58,8 +72,13 @@ bot.on('message', async ctx => {
     const userQuestion = await getUserQuestion(questionId, userId)
 
     if (userQuestion) {
-      await ctx.reply(`Well, you've already added this question before`)
-      ctx.reply(questionURL(question.titleSlug))
+      ctx.session.userQuestion = userQuestion
+      await ctx.replyWithHTML(`I've found this LeetCode problem in your question bucket.
+You can <b>update</b> it with the recent status of your solution or <b>delete</b> it from your bucket.`)
+      ctx.reply(questionURL(question.titleSlug), Markup.inlineKeyboard([
+        Markup.button.callback('Delete', 'delete'),
+        Markup.button.callback('Update', 'update')
+      ]))
     } else {
       const res = await addUserQuestion(questionId, userId)
       if (res) {
@@ -69,6 +88,44 @@ bot.on('message', async ctx => {
         ctx.reply(`Oops...Some error occurred so I couldn't add your question. Try again?`)
       }
     }
+  }
+})
+
+bot.action('update', async ctx => {
+  await ctx.answerCbQuery()
+  ctx.editMessageReplyMarkup(Markup.inlineKeyboard([
+    Markup.button.callback('Rejected', 'rejected'),
+    Markup.button.callback('Accepted', 'accepted')
+  ]).reply_markup)
+})
+
+bot.action('delete', async ctx => {
+  const res = await deleteUserQuestion(ctx.session.userQuestion._id)
+  if (res) {
+    ctx.answerCbQuery('Delete successful')
+    ctx.editMessageText(`[Deleted] ${ctx.callbackQuery.message.text}`)
+  } else {
+    ctx.answerCbQuery('Delete failed')
+  }
+})
+
+bot.action('accepted', async ctx => {
+  const res = await updateRecall(ctx.session.userQuestion, 1)
+  if (res) {
+    ctx.answerCbQuery('Update successful')
+    ctx.editMessageText(`[Accepted] ${ctx.callbackQuery.message.text}`)
+  } else {
+    ctx.answerCbQuery('Update failed')
+  }
+})
+
+bot.action('rejected', async ctx => {
+  const res = await updateRecall(ctx.session.userQuestion, 0)
+  if (res) {
+    ctx.answerCbQuery('Update successful')
+    ctx.editMessageText(`[Rejected] ${ctx.callbackQuery.message.text}`)
+  } else {
+    ctx.answerCbQuery('Update failed')
   }
 })
 
