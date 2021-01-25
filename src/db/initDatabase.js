@@ -19,6 +19,10 @@ async function createQuestions (db) {
               bsonType: 'number',
               description: 'question id on LeetCode (same as frontend_question_id from LeetCode API)'
             },
+            title: {
+              bsonType: 'string',
+              description: 'title of this question (same as question__title from LeetCode API)'
+            },
             titleSlug: {
               bsonType: 'string',
               description: 'last part of the question URL pathname (same as question__title_slug from LeetCode API)'
@@ -88,7 +92,7 @@ async function createUserQuestions (db) {
 (async function () {
   try {
     await Database.client.connect()
-    // await createQuestions(Database.db)
+    await createQuestions(Database.db)
     await createUserQuestions(Database.db)
   } catch (e) {
     console.error('initDatabase: script failed\n' + e)

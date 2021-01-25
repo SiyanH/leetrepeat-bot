@@ -11,6 +11,7 @@ async function getQuestions () {
     const json = await response.json()
     return json.stat_status_pairs.map(s => ({
       id: s.stat.frontend_question_id,
+      title: s.stat.question__title,
       titleSlug: s.stat.question__title_slug
     }))
   } catch (e) {
@@ -30,9 +31,12 @@ async function addQuestions (collection) {
 
 (async function () {
   try {
+    await Database.client.connect()
     const count = await addQuestions(Database.db.collection('questions'))
     console.log(`Added ${count} LeetCode problems to the collection of questions`)
   } catch (e) {
     console.error('addQuestions: script failed\n' + e)
+  } finally {
+    await Database.client.close()
   }
 })()
