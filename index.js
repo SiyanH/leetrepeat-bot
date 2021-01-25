@@ -6,6 +6,7 @@ const {
   addUserQuestion,
   deleteUserQuestion,
   getNextQuestion,
+  getAllUserQuestions,
   updateRecall
 } = require('./src/services/userQuestionsService')
 const { getQuestion } = require('./src/services/questionsService')
@@ -29,11 +30,15 @@ This is a bot that can intelligently schedule your next LeetCode problems to pra
 the forgetting curve. It uses a simple yet powerful model of forgetting (similar to Duolingo) to let you practice \
 problems with least recall probabilities.
 
+Add or update a problem simply by sending its LeetCode question id to the bot. 
+
 <a href="https://github.com/SiyanH/leetrepeat-bot">Code</a> is open source on GitHub.
 
 <b>Available actions</b>
 
-/start shows welcome message`
+/start shows welcome message
+/next fetches your next problem
+/all lists all your problems`
 
 const questionURL = (titleSlug) => `https://leetcode.com/problems/${titleSlug}`
 
@@ -54,6 +59,40 @@ bot.start(ctx =>
 )
 
 bot.help(ctx => ctx.replyWithHTML(help))
+
+bot.command('all', async ctx => {
+  try {
+    const questions = await getAllUserQuestions(ctx.from.id)
+
+    // Split questions to show on multiple pages if number of questions is over limit
+    if (questions.length) {
+      let html = ''
+      const limit = 10 // number of questions shown on each page
+      ctx.session.userQuestionsHTML = []
+
+      for (let i = 0; i < questions.length; i++) {
+        if (i > 0 && i % limit === 0) {
+          ctx.session.userQuestionsHTML.push(html)
+          html = ''
+        }
+        const url = questionURL(questions[i].question[0].titleSlug)
+        html += `<a href="${url}">${questions[i].question[0].id}. ${questions[i].question[0].title}</a>\n`
+      }
+      ctx.session.userQuestionsHTML.push(html)
+      ctx.session.userQuestionsPage = 0
+
+      ctx.replyWithHTML(ctx.session.userQuestionsHTML[0], {
+        disable_web_page_preview: true,
+        reply_markup: ctx.session.userQuestionsHTML[1]
+          ? Markup.inlineKeyboard([Markup.button.callback('>>', 'next_page')]).reply_markup : []
+      })
+    } else {
+      ctx.reply(`You haven't got any problem in your bucket. Try adding one?`)
+    }
+  } catch (e) {
+    console.error('Bot failed to process command /all\n' + e)
+  }
+})
 
 bot.command('next', async ctx => {
   try {
@@ -98,6 +137,60 @@ You can <b>update</b> it with the recent status of your solution or <b>delete</b
     }
   } catch (e) {
     console.error('Bot failed to process user message\n' + e)
+  }
+})
+
+bot.action('next_page', async ctx => {
+  try {
+    await ctx.answerCbQuery()
+    const html = ctx.session.userQuestionsHTML[++ctx.session.userQuestionsPage]
+    let reply_markup
+
+    if (ctx.session.userQuestionsHTML[ctx.session.userQuestionsPage + 1]) {
+      reply_markup = Markup.inlineKeyboard([
+        Markup.button.callback('<<', 'previous_page'),
+        Markup.button.callback('>>', 'next_page')
+      ]).reply_markup
+    } else {
+      reply_markup = Markup.inlineKeyboard([
+        Markup.button.callback('<<', 'previous_page'),
+      ]).reply_markup
+    }
+
+    ctx.editMessageText(html, {
+      parse_mode: 'HTML',
+      disable_web_page_preview: true,
+      reply_markup
+    })
+  } catch (e) {
+    console.error(`Bot failed to process callback 'next_page'\n` + e)
+  }
+})
+
+bot.action('previous_page', async ctx => {
+  try {
+    await ctx.answerCbQuery()
+    const html = ctx.session.userQuestionsHTML[--ctx.session.userQuestionsPage]
+    let reply_markup
+
+    if (ctx.session.userQuestionsHTML[ctx.session.userQuestionsPage - 1]) {
+      reply_markup = Markup.inlineKeyboard([
+        Markup.button.callback('<<', 'previous_page'),
+        Markup.button.callback('>>', 'next_page')
+      ]).reply_markup
+    } else {
+      reply_markup = Markup.inlineKeyboard([
+        Markup.button.callback('>>', 'next_page')
+      ]).reply_markup
+    }
+
+    ctx.editMessageText(html, {
+      parse_mode: 'HTML',
+      disable_web_page_preview: true,
+      reply_markup
+    })
+  } catch (e) {
+    console.error(`Bot failed to process callback 'previous_page'\n` + e)
   }
 })
 

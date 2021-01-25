@@ -84,9 +84,9 @@ async function getNextQuestion (userId) {
 }
 
 /**
- * Get all the user questions.
+ * Get all the user questions in ascending order of question id.
  * @param userId
- * @return {Promise<[object]>} an array of user questions with question details [{ _id, question: {...} }]
+ * @return {Promise<[object]>} an array of user questions with question details [{ _id, question: [{...}] }]
  */
 async function getAllUserQuestions (userId) {
   try {
@@ -104,6 +104,7 @@ async function getAllUserQuestions (userId) {
               as: 'question'
             }
         }])
+      .sort({ questionId: 1 })
       .project({ question: 1 })
       .toArray()
   } catch (e) {
