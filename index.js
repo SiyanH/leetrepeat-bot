@@ -12,7 +12,6 @@ const {
 const { getQuestion } = require('./src/services/questionsService')
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
-Database.client.connect()
 
 const welcome = (name) =>
   `Hi ${name} 👋 
@@ -84,7 +83,7 @@ bot.command('all', async ctx => {
       ctx.replyWithHTML(ctx.session.userQuestionsHTML[0], {
         disable_web_page_preview: true,
         reply_markup: ctx.session.userQuestionsHTML[1]
-          ? Markup.inlineKeyboard([Markup.button.callback('>>', 'next_page')]).reply_markup : []
+          ? Markup.inlineKeyboard([Markup.button.callback('>>', 'next_page')]).reply_markup : {}
       })
     } else {
       ctx.reply(`You haven't got any problem in your bucket. Try adding one?`)
@@ -250,13 +249,17 @@ bot.action('rejected', async ctx => {
 
 // Run with webhook
 // When running locally, get domain from command 'npx lt --port xxxx'
-bot.launch({
-  webhook: {
-    domain: process.env.DOMAIN,
-    hookPath: `/${process.env.WEBHOOK_PATH}`,
-    port: process.env.PORT
-  }
-}).catch(r => 'Bot failed to lunch\n' + r)
+Database.client.connect()
+  .then(
+    bot.launch({
+      webhook: {
+        domain: process.env.DOMAIN,
+        hookPath: `/${process.env.WEBHOOK_PATH}`,
+        port: process.env.PORT
+      }
+    }).catch(r => 'Bot failed to lunch\n' + r)
+  )
+  .catch(e => console.log('Failed to connect to Database\n' + e))
 
 // Enable graceful stop
 process.once('SIGINT', () => {
